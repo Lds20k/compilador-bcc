@@ -2,6 +2,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 #include "cgraph/list/list.h"
@@ -14,7 +15,7 @@
 #define DIVISION "DIVISION\0"
 #define INDETERMINATE "INDETERMINATE\0"
 #define POTENTIATION "POTENTIATION\0"
-#define INTEGER_NUMBER "INTEGER_NUMBER\0"
+#define INTEGER_NUMBER "REAL_NUMBER\0"
 #define REAL_NUMBER "REAL_NUMBER\0"
 
 typedef struct token_s
@@ -23,49 +24,71 @@ typedef struct token_s
     char* characters;
 } token_t;
 
+bool is_number(const char* character){
+    return character > 47 && character < 58; 
+}
+
 list_t* tokenization(char* string){
     list_t* tokens = create_list();
-    
     for (int i = 0; string[i] != '\0'; i++){
-        bool great_operator = false;
         token_t token;
         
-        switch (string[i]) {
-        case '+': 
-            token.name = SUM;
-            break;
-        case '-':
-            token.name = SUBTRACTION;
-            break;
-        case '*':
-            if(string[i + 1] == '*'){
-                great_operator = true;
-                token.name = POTENTIATION;
-            } else token.name = MULTIPLICATION;
-            break;
-        case '/':
-            token.name = DIVISION;
-            break;
-        default: 
-            token.name = INDETERMINATE;
-            break;
-        }
+        if(is_number(string[i])){
+            bool has_dot = false;
+            size_t size = 0;
 
-        token.characters = (char*) calloc(2 + great_operator, sizeof(char));
-        if(token.characters == NULL){
-            destroy_list(tokens);
-            return NULL;
+            while (is_number(string[i + size]) || (string[i + size] == '.' && !has_dot)){
+                if (string[i + size] == '.') has_dot = true;
+                size++;
+            }
+
+            token.name = (has_dot)? REAL_NUMBER : INTEGER_NUMBER;
+            token.characters = (char*) calloc(size, sizeof(char));
+            if(token.characters == NULL){
+                destroy_list(tokens);
+                return NULL;
+            }
+            strncpy(token.characters, &string[i], size);
+            i += size;
+        } else{
+            bool great_operator = false;
+
+            switch (string[i]) {
+            case '+': 
+                token.name = SUM;
+                break;
+            case '-':
+                token.name = SUBTRACTION;
+                break;
+            case '*':
+                if(string[i + 1] == '*'){
+                    great_operator = true;
+                    token.name = POTENTIATION;
+                } else token.name = MULTIPLICATION;
+                break;
+            case '/':
+                token.name = DIVISION;
+                break;
+            default: 
+                token.name = INDETERMINATE;
+                break;
+            }
+
+            token.characters = (char*) calloc(2 + great_operator, sizeof(char));
+            if(token.characters == NULL){
+                destroy_list(tokens);
+                return NULL;
+            }
+
+            strncpy(token.characters, &string[i], 1 + great_operator);
+            if(great_operator) i++;
         }
-        
-        strncpy(token.characters, &string[i], 1 + great_operator);
-        if(great_operator) i++;
 
         if(add_to_list(tokens, "operator_t", sizeof(token_t), &token)){
             destroy_list(tokens);
             return NULL;
         }
     }
-
     return tokens;
 }
 
