@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 #include "cgraph/list/list.h"
 
 #define FILE_ARGUMENT_MANDATORY "File argument is mandatory!"
@@ -12,6 +13,7 @@
 #define MULTIPLICATION "MULTIPLICATION\0"
 #define DIVISION "DIVISION\0"
 #define INDETERMINATE "INDETERMINATE\0"
+#define POTENTIATION "POTENTIATION\0"
 
 typedef struct operator_s
 {
@@ -22,10 +24,9 @@ typedef struct operator_s
 list_t* tokenization(char* string){
     list_t* tokens = create_list();
     for (int i = 0; string[i] != '\0'; i++){
+        bool great_operator = false;
         operator_t operator;
-        operator.characters = (char*) calloc(1, sizeof(char));
-        strncpy(operator.characters, &string[i], 1);
-
+        
         switch (string[i]) {
         case '+': 
             operator.name = SUM;
@@ -34,7 +35,10 @@ list_t* tokenization(char* string){
             operator.name = SUBTRACTION;
             break;
         case '*':
-            operator.name = MULTIPLICATION;
+            if(string[i + 1] == '*'){
+                great_operator = true;
+                operator.name = POTENTIATION;
+            } else operator.name = MULTIPLICATION;
             break;
         case '/':
             operator.name = DIVISION;
@@ -43,6 +47,15 @@ list_t* tokenization(char* string){
             operator.name = INDETERMINATE;
             break;
         }
+
+        operator.characters = (char*) calloc(2 + great_operator, sizeof(char));
+        if(operator.characters == NULL){
+            destroy_list(tokens);
+            return NULL;
+        }
+        
+        strncpy(operator.characters, &string[i], 1 + great_operator);
+        if(great_operator) i++;
 
         if(add_to_list(tokens, "operator_t", sizeof(operator_t), &operator)){
             destroy_list(tokens);
