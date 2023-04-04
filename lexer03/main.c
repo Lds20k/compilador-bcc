@@ -15,7 +15,7 @@
 #define DIVISION "DIVISION\0"
 #define INDETERMINATE "INDETERMINATE\0"
 #define POTENTIATION "POTENTIATION\0"
-#define INTEGER_NUMBER "REAL_NUMBER\0"
+#define INTEGER_NUMBER "INTEGER_NUMBER\0"
 #define REAL_NUMBER "REAL_NUMBER\0"
 
 typedef struct token_s
@@ -25,7 +25,7 @@ typedef struct token_s
 } token_t;
 
 bool is_number(const char* character){
-    return character > 47 && character < 58; 
+    return *character > 47 && *character < 58;
 }
 
 list_t* tokenization(char* string){
@@ -33,17 +33,17 @@ list_t* tokenization(char* string){
     for (int i = 0; string[i] != '\0'; i++){
         token_t token;
         
-        if(is_number(string[i])){
+        if(is_number(&string[i])){
             bool has_dot = false;
             size_t size = 0;
 
-            while (is_number(string[i + size]) || (string[i + size] == '.' && !has_dot)){
+            while (is_number(&string[i + size]) || (string[i + size] == '.' && !has_dot)){
                 if (string[i + size] == '.') has_dot = true;
                 size++;
             }
 
             token.name = (has_dot)? REAL_NUMBER : INTEGER_NUMBER;
-            token.characters = (char*) calloc(size, sizeof(char));
+            token.characters = (char*) calloc(size + 1, sizeof(char));
             if(token.characters == NULL){
                 destroy_list(tokens);
                 return NULL;
