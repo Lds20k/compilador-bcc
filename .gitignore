@@ -1,2 +1,6 @@
 */bin
 */library
+
+parser02/tinyexpr.o
+parser02/main.o
+parser02/main
