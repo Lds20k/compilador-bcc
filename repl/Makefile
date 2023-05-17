@@ -14,7 +14,7 @@ bin/main: bin library/lib/libcgraph.a main.c example
 
 library/lib/libcgraph.a: library
 ifeq (,$(wildcard ./library/lib/libcgraph.a))
-	curl -O -L https://github.com/Lds20k/c-graph-library/releases/download/v1.0.2/cgraph.tar.gz
+	curl -O -L https://github.com/Lds20k/c-graph-library/releases/download/v1.0.3/cgraph.tar.gz
 	tar -xvf cgraph.tar.gz -C library
 	rm cgraph.tar.gz
 endif
