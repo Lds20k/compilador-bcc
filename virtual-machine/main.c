@@ -5,6 +5,7 @@
 
 #define MEMORY_SIZE 256
 #define FILE_ARGUMENT_MANDATORY "File argument is mandatory!"
+#define FILE_HEADER 42
 
 enum instruction{
     NOP = 0,
@@ -21,7 +22,7 @@ enum instruction{
     HLZ = 240
 };
 
-bool load_file(const char *file, uint8_t *memory){
+bool load_file(const char *file, uint8_t* accumulator_register, uint8_t* program_counter, uint8_t *memory){
     FILE *file_pointer = fopen(file, "rb");
     if (file_pointer == NULL){
         return 1;
@@ -32,11 +33,18 @@ bool load_file(const char *file, uint8_t *memory){
     if (file_length > MEMORY_SIZE){
         return 1;
     }
+    fseek(file_pointer, 0, SEEK_SET);
 
     int8_t byte = 0;
     int index = 0;
     while ((byte = fgetc(file_pointer)) != EOF){
-        memory[index] = byte;
+        if (index < 3){
+            if(index == 0 && byte != FILE_HEADER) return 1;
+            if(index == 1) *accumulator_register = byte;
+            if(index == 2) *program_counter = byte;
+        }else{
+            memory[index - 3] = byte;
+        }
         index++;
     }
 
@@ -51,14 +59,14 @@ int main(int argc, char const *argv[])
     }
 
     uint8_t accumulator_register = 0;
-
+    uint8_t program_counter = 0;
     bool state_register = 0;
-
+    bool quit = 0;
     uint8_t memory[MEMORY_SIZE] = {0};
 
-    load_file(argv[1], memory);
+    load_file(argv[1], &accumulator_register, &program_counter, memory);
 
-    for (uint8_t program_counter = 0; program_counter < MEMORY_SIZE; program_counter++){
+    for (;program_counter < MEMORY_SIZE && !quit; program_counter++){
         switch (memory[program_counter]){
         case STA:
             program_counter++;
@@ -69,36 +77,58 @@ int main(int argc, char const *argv[])
             accumulator_register = memory[program_counter];
             break;
         case ADD:
-
+            program_counter++;
+            accumulator_register += memory[program_counter];
             break;
         case OR:
-
+            program_counter++;
+            accumulator_register |= memory[program_counter];
             break;
         case AND:
-
+            program_counter++;
+            accumulator_register &= memory[program_counter];
             break;
         case NOT:
-
+            program_counter++;
+            accumulator_register = ~accumulator_register;
             break;
         case JMP:
-
+            program_counter++;
+            program_counter = memory[program_counter];
             break;
         case JN:
-
+            if(state_register){
+                program_counter++;
+                program_counter = memory[program_counter];
+            }
             break;
         case JZ:
-
+            if(!state_register){
+                program_counter++;
+                program_counter = memory[program_counter];
+            }
             break;
         case OUT:
-            printf("")
+            printf("%c", accumulator_register);
             break;    
         case HLZ:
-
+            quit = true;
             break;
         default:
             break;
         }
     }
+    printf("\n");
+    printf("accumulator register: %d\n", accumulator_register);
+    printf("program counter: %d\n", program_counter);
+    printf("flag N: %d\n", state_register);
+    printf("flag Z: %d\n", !state_register);
+    printf("----------------------------memory-----------------------------\n");
+    for (int i = 1; i <= MEMORY_SIZE; i++){
+        printf("%03d ", memory[i - 1]);
+        if (i != 0 && i % 16 == 0) printf("\n");
+    }
+    printf("---------------------------------------------------------------\n");
 
     return 0;
 }
