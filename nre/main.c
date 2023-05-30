@@ -4,7 +4,8 @@
 #include <stdbool.h>
 
 #define MEMORY_SIZE 256
-#define FILE_ARGUMENT_MANDATORY "File argument is mandatory!"
+#define FILE_ARGUMENT_MANDATORY "File argument is mandatory!\n"
+#define FILE_INVALID "File is invalid!\n"
 #define FILE_HEADER 42
 
 enum instruction{
@@ -22,7 +23,19 @@ enum instruction{
     HLZ = 240
 };
 
-bool load_file(const char *file, uint8_t* accumulator_register, uint8_t* program_counter, uint8_t *memory){
+enum state{
+    ZERO = 0,
+    NEGATIVE = 1,
+    NO_STATE = 3
+};
+
+int set_state_register(uint8_t accumulator_register){
+    if(accumulator_register == 0) return ZERO;
+    if(accumulator_register > 127) return NEGATIVE;
+    return NO_STATE;
+}
+
+bool load_file(const char *file, uint8_t* accumulator_register, uint8_t* program_counter, uint8_t* state_register, uint8_t *memory){
     FILE *file_pointer = fopen(file, "rb");
     if (file_pointer == NULL){
         return 1;
@@ -30,17 +43,24 @@ bool load_file(const char *file, uint8_t* accumulator_register, uint8_t* program
 
     fseek(file_pointer, 0, SEEK_END);
     long file_length = ftell(file_pointer);
-    if (file_length > MEMORY_SIZE){
+    if (file_length > MEMORY_SIZE + 3){
         return 1;
     }
     fseek(file_pointer, 0, SEEK_SET);
+    if (file_length < 4){
+        return 1;
+    }
+    
 
     int8_t byte = 0;
     int index = 0;
     while ((byte = fgetc(file_pointer)) != EOF){
         if (index < 3){
             if(index == 0 && byte != FILE_HEADER) return 1;
-            if(index == 1) *accumulator_register = byte;
+            if(index == 1){
+                *accumulator_register = byte;
+                *state_register = set_state_register(*accumulator_register);
+            }
             if(index == 2) *program_counter = byte;
         }else{
             memory[index - 3] = byte;
@@ -49,6 +69,7 @@ bool load_file(const char *file, uint8_t* accumulator_register, uint8_t* program
     }
 
     fclose(file_pointer);
+    return 0;
 }
 
 int main(int argc, char const *argv[])
@@ -60,13 +81,16 @@ int main(int argc, char const *argv[])
 
     uint8_t accumulator_register = 0;
     uint8_t program_counter = 0;
-    bool state_register = 0;
+    uint8_t state_register = 0;
     bool quit = 0;
     uint8_t memory[MEMORY_SIZE] = {0};
 
-    load_file(argv[1], &accumulator_register, &program_counter, memory);
+    if(load_file(argv[1], &accumulator_register, &program_counter, &state_register, memory)){
+        printf(FILE_INVALID);
+        return 1;
+    }
 
-    for (;program_counter < MEMORY_SIZE && !quit; program_counter++){
+    for (;!quit; program_counter++){
         switch (memory[program_counter]){
         case STA:
             program_counter++;
@@ -97,13 +121,13 @@ int main(int argc, char const *argv[])
             program_counter = memory[program_counter];
             break;
         case JN:
-            if(state_register){
+            if(state_register == NEGATIVE){
                 program_counter++;
                 program_counter = memory[program_counter];
             }
             break;
         case JZ:
-            if(!state_register){
+            if(state_register == ZERO){
                 program_counter++;
                 program_counter = memory[program_counter];
             }
@@ -117,12 +141,16 @@ int main(int argc, char const *argv[])
         default:
             break;
         }
+
+        state_register = set_state_register(accumulator_register);
+        quit = program_counter + 1 > MEMORY_SIZE || quit;
     }
     printf("\n");
+    printf("----------------------------report-----------------------------\n");
     printf("accumulator register: %d\n", accumulator_register);
     printf("program counter: %d\n", program_counter);
-    printf("flag N: %d\n", state_register);
-    printf("flag Z: %d\n", !state_register);
+    printf("flag N: %d\n", state_register == NEGATIVE);
+    printf("flag Z: %d\n", state_register == ZERO);
     printf("----------------------------memory-----------------------------\n");
     for (int i = 1; i <= MEMORY_SIZE; i++){
         printf("%03d ", memory[i - 1]);

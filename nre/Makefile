@@ -9,8 +9,8 @@ debug: build
 build: bin/main
 
 bin/main: bin library/lib/libcgraph.a main.c example
-	gcc $(STD) -o bin/main main.c -Ilibrary/include $(FLAGS)
-	gcc $(STD) -o bin/main main.c -Ilibrary/include -Llibrary/lib -lcgraph -g -O0
+	gcc $(STD) -o bin/nre main.c -Ilibrary/include $(FLAGS)
+	gcc $(STD) -o bin/nre main.c -Ilibrary/include -Llibrary/lib -lcgraph -g -O0
 
 library/lib/libcgraph.a: library
 ifeq (,$(wildcard ./library/lib/libcgraph.a))
@@ -21,7 +21,7 @@ endif
 
 example: bin
 ifeq (,$(wildcard ./bin/main.bcc))
-	cp main.bcc bin/main.bcc
+	cp main.nar bin/main.nar
 endif
 
 library:

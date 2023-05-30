@@ -5,9 +5,9 @@
             "name": "gdb: launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/bin/main",
+            "program": "${workspaceFolder}/bin/nre",
             "args": [
-                "main.bcc"
+                "main.nar"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/bin",
